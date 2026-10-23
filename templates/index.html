@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Statement Categorizer</title>
+  <style>
+    :root {
+      --bg: #f6f6f4;
+      --card: #ffffff;
+      --text: #1f2328;
+      --muted: #6b7075;
+      --border: #e2e2de;
+      --accent: #2f6fdb;
+      --bar: #8fb0ea;
+      --neg: #1d8a4c;
+      --error-bg: #fdecec;
+      --error-text: #a12626;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #17181a;
+        --card: #1f2124;
+        --text: #e6e6e3;
+        --muted: #9a9ea3;
+        --border: #33363a;
+        --accent: #6a9cf0;
+        --bar: #3d5f9c;
+        --neg: #4cc283;
+        --error-bg: #3a1e1e;
+        --error-text: #f2a8a8;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+    h1 { font-size: 1.6rem; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 28px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    form { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    input[type=file] { flex: 1; min-width: 0; font-size: 0.95rem; color: var(--text); }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    .error {
+      background: var(--error-bg);
+      color: var(--error-text);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+    }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+    .stat .label { color: var(--muted); font-size: 0.85rem; }
+    .stat .value { font-size: 1.4rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; font-size: 0.85rem; }
+    td.num, th.num { text-align: right; white-space: nowrap; }
+    tr:last-child td { border-bottom: 0; }
+    .neg { color: var(--neg); }
+    .bar-cell { width: 30%; }
+    .bar { height: 8px; border-radius: 4px; background: var(--bar); }
+    details { border-top: 1px solid var(--border); padding: 10px 0; }
+    details:first-of-type { border-top: 0; }
+    summary { cursor: pointer; font-weight: 600; display: flex; justify-content: space-between; gap: 12px; }
+    summary::-webkit-details-marker { display: none; }
+    summary span:first-child::before { content: "▸"; display: inline-block; width: 1.1em; color: var(--muted); transition: transform 0.15s; }
+    details[open] summary span:first-child::before { transform: rotate(90deg); }
+    summary span.amount { font-weight: 500; font-variant-numeric: tabular-nums; }
+    details table { margin-top: 8px; font-size: 0.9rem; }
+    h2 { font-size: 1.05rem; margin: 0 0 12px; }
+    .file-name { color: var(--muted); font-size: 0.9rem; margin: -8px 0 16px; }
+    @media (max-width: 520px) {
+      .bar-cell { display: none; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Statement Categorizer</h1>
+  <p class="sub">Upload a bank statement PDF to see your spending grouped by category. The file is processed on your laptop and never saved.</p>
+
+  <div class="card">
+    {# enctype="multipart/form-data" is required for a form to send a file #}
+    <form method="post" enctype="multipart/form-data">
+      <input type="file" name="statement" accept=".pdf,application/pdf" required>
+      <button type="submit">Analyze</button>
+    </form>
+  </div>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
+  {% if summary %}
+    <p class="file-name">Results for <strong>{{ filename }}</strong> — {{ summary.count }} transactions</p>
+
+    <div class="card stats">
+      <div class="stat">
+        <div class="label">Total spending</div>
+        <div class="value">{{ summary.total_spent | money }}</div>
+      </div>
+      {% if summary.total_credits %}
+      <div class="stat">
+        <div class="label">Payments / credits</div>
+        <div class="value neg">{{ summary.total_credits | money }}</div>
+      </div>
+      {% endif %}
+      <div class="stat">
+        <div class="label">Categories</div>
+        <div class="value">{{ summary.categories | length }}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>By category</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th class="num">Count</th>
+            <th class="num">Total</th>
+            <th class="bar-cell">Share of spending</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in summary.categories %}
+          <tr>
+            <td>{{ cat.name }}</td>
+            <td class="num">{{ cat.count }}</td>
+            <td class="num {% if cat.subtotal < 0 %}neg{% endif %}">{{ cat.subtotal | money }}</td>
+            <td class="bar-cell">
+              {% if cat.share > 0 %}
+                <div class="bar" style="width: {{ '%.1f' | format(cat.share) }}%" title="{{ '%.1f' | format(cat.share) }}%"></div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Transactions</h2>
+      {% for cat in summary.categories %}
+      <details>
+        <summary>
+          <span>{{ cat.name }} ({{ cat.count }})</span>
+          <span class="amount {% if cat.subtotal < 0 %}neg{% endif %}">{{ cat.subtotal | money }}</span>
+        </summary>
+        <table>
+          {% for tx in cat.transactions %}
+          <tr>
+            <td style="white-space: nowrap;">{{ tx.date }}</td>
+            <td>{{ tx.description }}</td>
+            <td class="num {% if tx.amount < 0 %}neg{% endif %}">{{ tx.amount | money }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </details>
+      {% endfor %}
+    </div>
+  {% endif %}
+</main>
+</body>
+</html>
