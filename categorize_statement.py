@@ -56,7 +56,7 @@ CATEGORY_RULES = {
         "edeka", "rewe", "aldi", "lidl", "kaufland", "netto", "penny",
         "dm drogerie", "dm-drogerie", "rossmann", "whole foods",
         "trader joe", "walmart", "safeway", "kroger", "tesco",
-        "sainsbury", "carrefour", "supermarket", "grocery", "sila"
+        "sainsbury", "carrefour", "supermarket", "grocery", "sila", "eurogida", "euro gida"
     ],
     "Subscriptions": [
         "netflix", "spotify", "anthropic", "claude sub", "amazon prime",
@@ -72,8 +72,8 @@ CATEGORY_RULES = {
     "Restaurants": [
         "sanku", "yangguofu", "doner", "kebap", "döner",
     ],
-    "Clothes": [
-        "zalando", "new yorker", "h&m",
+    "Shopping": [
+        "amazon", "zalando", "ebay", "new yorker", "h&m"
     ],
     "Travel": [
         "flix", "db", "detusche bahn",
